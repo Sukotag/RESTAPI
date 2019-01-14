@@ -10,8 +10,8 @@ namespace RESTAPI
 	public class AuthOptions
 	{
 		public const string ISSUER = "AgentServer";
-		public const string AUDIENCE = "HTTP://localhost:44366";
-		const string KEY = "Ibah0d@ybt!123";
+		public const string AUDIENCE = "http://localhost:44366/";
+		const string KEY = "sekretniy_rluch!123";
 
 		public static SymmetricSecurityKey GetSymmetricSecurityKey()
 		{
