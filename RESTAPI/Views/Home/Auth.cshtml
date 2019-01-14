@@ -1,0 +1,107 @@
+﻿@{
+    ViewData["Title"] = "Авторизация пльзователя";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>JWT в ASP.NET Core Web API</title>
+    <script src="~/js/site.min.js"></script>
+    <link href="~/css/site.min.css" rel="stylesheet" type="text/css" />    
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+</head>
+<body>
+    <div class="userInfo" style="display:none;">
+        <p>Вы вошли как: <span class="userName"></span></p>
+        <input type="button" value="Выйти" id="logOut" />
+    </div>
+    <div class="loginForm">
+        <h3>Вход на сайт</h3>
+        <label>Введите логин</label><br />
+        <input type="email" id="emailLogin" /> <br /><br />
+        <label>Введите пароль</label><br />
+        <input type="password" id="passwordLogin" /><br /><br />
+        <input type="submit" id="submitLogin" value="Логин" />
+    </div>
+    <div>
+        <input type="hidden" id="getDataByLogin" value="Данные по логину" />
+    </div>
+    <div>
+        <input type="hidden" id="getDataByRole" value="Данные по роли" />
+    </div>   
+    <script>
+        var tokenKey = "accessToken";
+        $('#submitLogin').click(function (e)
+        {
+            e.preventDefault();
+
+            var loginData = {
+                grant_type: 'password',
+                username: $('#emailLogin').val(),
+                password: $('#passwordLogin').val()
+            };
+            
+            $.ajax({
+                type: 'POST',
+                url: '/token',
+                data: loginData
+            })
+                .done(function (data) {                    
+                    sessionStorage.setItem("thisToken", data.access_token);                    
+
+                    console.log(data.access_token);
+                    //Возврат на страницу с которой пришел пользователь
+                    var backPage = sessionStorage.getItem("thisPageRedirToAuth");
+                    location = backPage;
+                })
+                .fail(function (data) {
+                    console.log(data);
+                });
+
+        });
+
+        $('#logOut').click(function (e) {
+            e.preventDefault();
+            $('.loginForm').css('display', 'block');
+            $('.userInfo').css('display', 'none');
+            sessionStorage.removeItem("thisToken");
+        });
+
+        $('#getDataByLogin').click(function (e) {
+            e.preventDefault();
+            $.ajax({
+                type: 'GET',
+                url: '/api/auth/getlogin',
+                beforeSend: function (xhr) {
+
+                    var token = sessionStorage.getItem("thisToken");
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                success: function (data) {
+                    alert(data);
+                },
+                fail: function (data) {
+                    console.log(data);
+                }
+            });
+        });
+        $('#getDataByRole').click(function (e) {
+            e.preventDefault();
+            $.ajax({
+                type: 'GET',
+                url: '/api/auth/getrole',
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken")                                     
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                success: function (data) {
+                    alert(data);
+                },
+                fail: function (data) {
+                    console.log(data);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

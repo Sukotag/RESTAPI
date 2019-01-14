@@ -1,0 +1,267 @@
+﻿@{
+    ViewData["Title"] = "Рабочая область";
+}
+
+<script language="JavaScript" type="text/javascript">        
+    if (sessionStorage.getItem("thisToken") == null)
+    {
+        if (sessionStorage.getItem("thisPageRedirToAuth") != null)
+            sessionStorage.removeItem("thisPageRedirToAuth");
+
+        sessionStorage.setItem("thisPageRedirToAuth", "/");
+        location = "/Home/Auth";        
+    }
+</script>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Cписок риэлторов</title>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <link href="~/css/site.min.css" rel="stylesheet" type="text/css" />
+    <script src="~/js/site.js"></script>
+</head>
+<body>   
+    <h2>Список риэлторов</h2>
+    <form name="userForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="firstname">Имя:</label>
+            <input class="form-control" name="firstname" />
+        </div>
+        <div class="form-group">
+            <label for="lastname">Фамилия:</label>
+            <input class="form-control" name="lastname" />
+        </div>
+        <div class="form-group">
+            <label for="division">Подразделение:</label>
+            <input class="form-control" name="division" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Добавить</button>
+            <a id="reset" class="btn btn-sm btn-primary">Очистить</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Имя</th>
+                <th>Фамилия</th>
+                <th>Подразделение</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script type="text/javascript">
+        $.ajaxSetup({
+            statusCode: {
+                401: function () {
+                    alert("Ваш токен просрочен либо не действительный!");
+                    location = "/Home/Auth";
+                },
+
+               403: function () {
+                    console.log('В доступе отказано!');
+                },
+
+                404: function () {
+                    console.log('Адрес не найден.');
+                }
+            }
+        });
+
+
+        // Получение всех риэлторов
+        function GetRealtors()
+        {            
+            $.ajax({
+                url: '/api/realtor',
+                type: 'GET',
+                contentType: "application/json",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");                    
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);                    
+                },
+                success: function (realtor) {
+                    var rows = "";
+                    $.each(realtor, function (index, r) {
+                        // добавляем полученные элементы в таблицу
+                        rows += row(r);
+                    })
+                    $("table tbody").append(rows);
+                }
+            });
+        }
+        // Вывод реэлтора
+        function GetRealtor(id) {
+            $.ajax({
+                url: '/api/realtor/' + id,
+                type: 'GET',
+                contentType: "application/json",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");                    
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                success: function (realtor) {
+                    var form = document.forms["userForm"];
+                    form.elements["id"].value = realtor.id;
+                    form.elements["firstname"].value = realtor.firstname;
+                    form.elements["lastname"].value = realtor.lastname;
+                    form.elements["division"].value = realtor.division;
+                }
+            });
+        }
+
+        function GetDivision() {
+            $.ajax({
+                url: '/api/realtor/' + id,
+                type: 'GET',
+                contentType: "application/json",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");                    
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                success: function (realtor) {
+                    var form = document.forms["userForm"];
+                    form.elements["id"].value = realtor.id;
+                    form.elements["firstname"].value = realtor.firstname;
+                    form.elements["lastname"].value = realtor.lastname;
+                    from.elements["division"].value = realtor.division;
+                }
+            });
+        }
+
+        // Добавление нового реэлтора
+        function CreateRealtor(firstname, lastname, division) {
+            var d = new Date();
+            var m = d.getMonth() + 1;
+            var dateString = d.getFullYear() + "." + m + "." + d.getDate() + " " + d.getHours() + ":" + d.getMinutes() + ":00.000";
+
+            alert(dateString);
+            $.ajax({
+                url: "/api/realtor",
+                contentType: "application/json",
+                method: "POST",                 
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");                    
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                data: JSON.stringify({
+                    firstname: firstname,
+                    lastname: lastname,
+                    division: division,
+                    CreatedDateTime: dateString
+                }),
+                success: function (realtor) {
+                    reset();
+                    $("table tbody").append(row(realtor));
+                }
+            })
+        }
+        // Изменение пользователя
+        function EditRealtor(realtorId, realtorFirstname, realtorLastname, realtorDivision) {
+            var d = new Date();
+            var m = d.getMonth() + 1;
+            var dateString = d.getFullYear() + "." + m + "." + d.getDate() + " " + d.getHours() + ":" + d.getMinutes() + ":00.000";
+
+            $.ajax({
+                url: "/api/realtor/",
+                contentType: "application/json",
+                method: "PUT",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");                    
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                data: JSON.stringify({
+                    id: realtorId,
+                    firstname: realtorFirstname,
+                    lastname: realtorLastname,
+                    division: realtorDivision,
+                    CreatedDateTime: dateString
+                }),
+                success: function (realtor) {
+                    reset();
+                    $("tr[data-rowid='" + realtor.id + "']").replaceWith(row(realtor));
+                }
+            })
+        }
+
+        // сброс формы
+        function reset() {
+            var form = document.forms["userForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+
+        // Удаление пользователя
+        function DeleteRealtor(id) {            
+            $.ajax({
+                url: "api/realtor/" + id,
+                contentType: "application/json",
+                method: "DELETE",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");                    
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                success: function (realtor) {
+                    $("tr[data-rowid='" + realtor.id + "']").remove();
+                }
+            })
+        }
+        // создание строки для таблицы
+        var row = function (realtor) {
+            return "<tr data-rowid='" + realtor.id + "'><td>" + realtor.id + "</td>" +
+                "<td>" + realtor.firstname + "</td> <td>" + realtor.lastname + "</td> <td>" + realtor.division + "</td>" +
+                "<td><a class='editLink' data-id='" + realtor.id + "'>Изменить</a> | " +
+                "<a class='removeLink' data-id='" + realtor.id + "'>Удалить</a></td></tr>";
+        }
+        // сброс значений формы
+        $("#reset").click(function (e) {
+
+            e.preventDefault();
+            reset();
+        })
+
+        // отправка формы
+        $("form").submit(function (e) {
+            e.preventDefault();
+            var id = this.elements["id"].value;
+            var firstname = this.elements["firstname"].value;
+            var lastname = this.elements["lastname"].value;
+            var division = this.elements["division"].value;
+            if (id == 0) {
+                CreateRealtor(firstname, lastname, division);
+            }
+            else {
+                EditRealtor(id, firstname, lastname, division);
+            }
+        });
+
+        // нажимаем на ссылку Изменить
+        $("body").on("click", ".editLink", function () {
+            var id = $(this).data("id");
+            GetRealtor(id);
+        })
+        // нажимаем на ссылку Удалить
+        $("body").on("click", ".removeLink", function () {
+            var id = $(this).data("id");
+            DeleteRealtor(id);
+        })
+
+        // Редактировать модель
+        $("body").on("click", ".Edit-model", function () {
+
+        })
+
+
+        // загрузка списка риэлторов
+        GetRealtors();
+
+    </script>
+</body>
+</html>

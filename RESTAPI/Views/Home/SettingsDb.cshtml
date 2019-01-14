@@ -1,0 +1,206 @@
+﻿@{
+    ViewData["Title"] = "Администрирование БД";
+}
+
+<script language="JavaScript" type="text/javascript">    
+    if (sessionStorage.getItem("thisToken") == null) {
+        if (sessionStorage.getItem("thisPageRedirToAuth") != null)
+            sessionStorage.removeItem("thisPageRedirToAuth");
+
+        sessionStorage.setItem("thisPageRedirToAuth", "/");
+        location = "/Home/Auth";
+    }    
+</script>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Cписок риэлторов</title>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <link href="~/css/site.min.css" rel="stylesheet" type="text/css" />
+    <script src="~/js/site.js"></script>
+</head>
+<body>
+    <h2>Список Подразделений</h2>
+    <form name="userForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="firstname">Наименование:</label>
+            <input class="form-control" name="name" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Добавить</button>
+            <a id="reset" class="btn btn-sm btn-primary">Очистить</a>
+        </div>
+    </form>
+    <table id="divis" class="table table-condensed table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Наименование</th>
+                <th>Дата добавления</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>  
+
+    <script type="text/javascript">
+        // Получение всех подразделений сети
+        function GetDivisions() {
+            $.ajax({
+                url: '/api/division',
+                type: 'GET',
+                contentType: "application/json",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                success: function (division) {
+                    var rows = "";
+                    $.each(division, function (index, r) {
+                        // добавляем полученные элементы в таблицу
+                        rows += row(r);
+                    })
+                    $("#divis tbody").append(rows);
+                }
+            });
+        }
+
+        // Вывод подразделения по id
+        function GetDivision(id) {
+            $.ajax({
+                url: '/api/division/' + id,
+                type: 'GET',
+                contentType: "application/json",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                success: function (division) {
+                    var form = document.forms["userForm"];
+                    form.elements["id"].value = division.id;
+                    form.elements["name"].value = division.name;
+                }
+            });
+        }        
+
+        // создание строки для таблицы
+        var row = function (division) {
+            return "<tr data-rowid='" + division.id + "'><td>" + division.id + "</td>" +
+                "<td>" + division.name + "</td>" + "<td></td>" +
+                "<td><a class='editLink' data-id='" + division.id + "'>Изменить</a> | " +
+                "<a class='removeLink' data-id='" + division.id + "'>Удалить</a></td></tr>";
+        }                       
+
+        // Добавление нового Подразделения
+        function CreateDivision(name) {
+            var d = new Date();
+            var m = d.getMonth() + 1;
+            var dateString = d.getFullYear() + "." + m + "." + d.getDate() + " " + d.getHours() + ":" + d.getMinutes() + ":00.000";
+
+            alert(dateString);
+            $.ajax({
+                url: "/api/division",
+                contentType: "application/json",
+                method: "POST",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");                    
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                data: JSON.stringify({
+                    name: name,                    
+                    CreatedDateTime: dateString
+                }),
+                success: function (division) {
+                    reset();
+                    $("table tbody").append(row(division));
+                }
+            })
+        }
+        // Изменение Подразделения
+        function EditDivision(divisionId, name) {
+            var d = new Date();
+            var m = d.getMonth() + 1;
+            var dateString = d.getFullYear() + "." + m + "." + d.getDate() + " " + d.getHours() + ":" + d.getMinutes() + ":00.000";
+
+            $.ajax({
+                url: "/api/division/",
+                contentType: "application/json",
+                method: "PUT",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");                    
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                data: JSON.stringify({
+                    id: divisionId,
+                    name: name,                    
+                    CreatedDateTime: dateString
+                }),
+                success: function (division) {
+                    reset();
+                    $("tr[data-rowid='" + division.id + "']").replaceWith(row(division));
+                }
+            })
+        }
+                     
+        // Удаление пользователя
+        function DeleteDivision(id) {            
+            $.ajax({
+                url: "/api/division/" + id,
+                contentType: "application/json",
+                method: "DELETE",
+                beforeSend: function (xhr) {
+                    var token = sessionStorage.getItem("thisToken");
+                    xhr.setRequestHeader("Authorization", "Bearer " + token);
+                },
+                success: function (division) {
+                    $("tr[data-rowid='" + division.id + "']").remove();
+                }
+            })
+        }
+
+        // сброс формы
+        function reset() {
+            var form = document.forms["userForm"];
+            form.reset();
+            form.elements["id"].value = null;
+        }
+
+        // отправка формы
+        $("form").submit(function (e) {
+            e.preventDefault();
+            var id = this.elements["id"].value;
+            var name = this.elements["name"].value;            
+            if (id == 0) {
+                CreateDivision(name);
+            }
+            else {
+                EditDivision(id, name);
+            }
+        });
+
+        // нажимаем на ссылку Изменить
+        $("body").on("click", ".editLink", function () {
+            var id = $(this).data("id");
+            GetDivision(id);
+        })
+        // нажимаем на ссылку Удалить
+        $("body").on("click", ".removeLink", function () {
+            var id = $(this).data("id");
+            DeleteDivision(id);
+        })
+
+        // Редактировать модель
+        $("body").on("click", ".Edit-model", function () {
+
+        })
+
+        // загрузка списка риэлторов        
+        GetDivisions();
+
+    </script>
+</body>
+</html >
